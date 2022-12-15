@@ -1,6 +1,6 @@
 /*
-@title: scrawny_koffing
-@author: your_name
+  @title: Befunge
+  @author: Shane Celis @shanecelis
 */
 
 const player = "p";
@@ -8,10 +8,10 @@ const selection = "b";
 
 class Befunge {
 
-  constructor(width, height) {
+  constructor(width, height, char = ' ') {
     this.width = width;
     this.height = height;
-    this.cells = Array(width).fill(null).map(i => Array(height).fill(' '));
+    this.cells = Array(width).fill(null).map(i => Array(height).fill(char));
     this.pointer = [0, 0];
     this.inertia = [1, 0];
     this.stack = [];
@@ -89,7 +89,7 @@ class Befunge {
     }
   }
 
-  draw(x, y) {
+  draw(x = 0, y = 0) {
     for (let i = 0; i < this.width; i++) {
       for (let j = 0; j < this.height; j++) {
         addText(this.cells[i][j], { x: i + x, y: j + y});
@@ -138,33 +138,65 @@ setLegend(
 setSolids([]);
 
 let level = 0;
+// 20 x 16
 const levels = [
   map`
-pb.
-...
-...`,
+b......................
+.......................
+.......................
+.......................
+.......................
+.......................
+.......................
+.......................
+.......................
+.......................
+.......................
+.......................
+.......................
+.......................
+.......................
+.......................
+.......................
+.......................`,
 ];
 
-let befunge = new Befunge(10, 10);
-befunge.read("11+.\"a\". elllkjlkj@");
-befunge.step(8);
+let befunge = new Befunge(20, 16, 'a');
+befunge.cells[19][0] = 'l';
 
-addText("output: " + befunge.output, { x: 0, y: 15 });
+// befunge.read("11+.\"a\". elllkjlkj@");
+// befunge.step(8);
+
+// addText("output: " + befunge.output, { x: 0, y: 15});
 
 
-//befunge.draw(5, 5);
+
 
 setMap(levels[level]);
+
+befunge.draw();
 
 setPushables({
   [player]: []
 });
 
-//addText("hello", { x: 0, y: 0, color: color`5` });
+addText("hello", { x: 0, y: 0, color: color`5` });
 //addText("hello", { x: 18, y: 5, color: color`5` });
 
 onInput("s", () => {
   getFirst(selection).y += 1
+});
+
+onInput("w", () => {
+  getFirst(selection).y -= 1
+});
+
+onInput("a", () => {
+  getFirst(selection).x -= 1
+});
+
+onInput("d", () => {
+  getFirst(selection).x += 1
 });
 
 afterInput(() => {
