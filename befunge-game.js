@@ -159,16 +159,17 @@ const levels = [
 ....................`,
 ];
 setMap(levels[level]);
+clearText();
 
-let befunge = new Befunge(20, 16, 'a');
-befunge.cells[19][0] = 'l';
-for (let i = 0; i < 20; i++) {
+let befunge = new Befunge(18, 14, 'b');
+befunge.cells[befunge.width - 1][0] = 'l';
+for (let i = 0; i < befunge.width; i++) {
   befunge.cells[i][0] = (i % 10).toString();
 }
-for (let j = 0; j < 16; j++) {
+for (let j = 0; j < befunge.height; j++) {
   befunge.cells[0][j] = (j % 10).toString();
 }
-// befunge.read("11+.\"a\". elllkjlkj@");
+ befunge.read("11+.\"a\". elllkjlkj@");
 // befunge.step(8);
 
 // addText("output: " + befunge.output, { x: 0, y: 15});
@@ -177,13 +178,13 @@ for (let j = 0; j < 16; j++) {
 
 
 
-befunge.draw();
+befunge.draw(1,1);
 
 setPushables({
   [player]: []
 });
 
-addText("hello", { x: 0, y: 0, color: color`5` });
+//addText("hello", { x: 0, y: 0, color: color`5` });
 addText("hello", { x: 12, y: 5, color: color`5` });
 
 onInput("s", () => {
