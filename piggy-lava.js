@@ -343,6 +343,11 @@ onInput("d", () => {
   playTune(walk);
 });
 
+function myClearText() {
+  clearText();
+  addText(""+tempototal, { y: 1 , color: color`7` });
+}
+
 var tempototal = 60;
     var tempodescendo = setInterval(function(){
     tempototal--;
@@ -395,7 +400,7 @@ var tempototal = 60;
       addText("beginning of", { y: 13, color: color`6` });
       addText("every level.", { y: 14, color: color`6` });
       afterInput(()=>{
-        clearText();
+        myClearText();
       });
     }
     if (level == 1) {
