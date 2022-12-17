@@ -47,14 +47,35 @@ class Befunge {
       case '-':
         s.push(s.pop() - s.pop());
         break;
+      case '*':
+        s.push(s.pop() * s.pop());
+        break;
+      case '/':
+        s.push(s.pop() / s.pop());
+        break;
+      case '>':
+        this.inertia = [1, 0];
+        break;
+      case '<':
+        this.inertia = [-1, 0];
+        break;
+      case '^':
+        this.inertia = [0, 1];
+        break;
+      case 'v':
+        this.inertia = [0, -1];
+        break;
+      case '?':
+        let index = Math.floor(Math.random() * 4);
+        eval(['>', '<', '^', 'v'][index]);
+        break;
       case '.':
         // Output as integer.
-        //let e = s.pop();
         this.output += s.pop();
         break;
       case ',':
         // Output as character.
-        this.output += s.pop();
+        this.output += String.fromCodePoint(s.pop());
         break;
       case '"':
         this.stringMode = true;
@@ -98,11 +119,15 @@ class Befunge {
       }
     }
     // Draw the stack.
+    for (let i = 0; i < 5; i++) {
+      addText("stack"[4 - i], { x: this.width + x, y: this.height + y - 1 - i });
+    }
     for (let i = 0; i < this.stack.length; i++) {
-      addText(this.stack[0], { x: this.width + x, y: this.height + y + i });
+      addText("" + this.stack[i], { x: this.width + x + 1, y: this.height + y - 1 - i });
     }
     // Draw the output.
-    addText(this.output, { x: x, y: this.height + y });
+    addText("output",    { x: x, y: this.height + y });
+    addText(this.output, { x: x, y: this.height + y + 1 });
   }
 }
 
@@ -169,7 +194,7 @@ const levels = [
 setMap(levels[level]);
 clearText();
 
-let befunge = new Befunge(18, 14, 'b');
+let befunge = new Befunge(17, 13, 'b');
 befunge.cells[befunge.width - 1][0] = 'l';
 for (let i = 0; i < befunge.width; i++) {
   befunge.cells[i][0] = (i % 10).toString();
@@ -177,8 +202,8 @@ for (let i = 0; i < befunge.width; i++) {
 for (let j = 0; j < befunge.height; j++) {
   befunge.cells[0][j] = (j % 10).toString();
 }
- befunge.read("11+.\"a\". elllkjlkj@");
-befunge.step(8);
+ befunge.read("11+.\"a\", elllkjlkj@");
+ befunge.step(8);
 
 // addText("output: " + befunge.output, { x: 0, y: 15});
 
