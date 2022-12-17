@@ -11,10 +11,11 @@ class Befunge {
   constructor(width, height, char = ' ') {
     this.width = width;
     this.height = height;
+    // Cells are a 2d array of characters.
     this.cells = Array(width).fill(null).map(i => Array(height).fill(char));
     this.pointer = [0, 0];
     this.inertia = [1, 0];
-    this.stack = [];
+    this.stack = []; // just integers, please.
     this.output = "";
     this.stringMode = false;
   }
@@ -23,17 +24,18 @@ class Befunge {
     return c >= '0' && c <= '9';
   }
 
+  /** Accept a character. */
   eval(instruction) {
     let s = this.stack;
     if (this.stringMode) {
       if (instruction == '"')
         this.stringMode = false;
       else
-        s.push(instruction);
+        s.push(instruction.codePointAt());
       return;
     }
     if (this.isDigit(instruction)) {
-      s.push(instruction);
+      s.push(instruction - 0);
       return;
     }
     switch(instruction) {
@@ -95,6 +97,12 @@ class Befunge {
         addText(this.cells[i][j], { x: i + x, y: j + y});
       }
     }
+    // Draw the stack.
+    for (let i = 0; i < this.stack.length; i++) {
+      addText(this.stack[0], { x: this.width + x, y: this.height + y + i });
+    }
+    // Draw the output.
+    addText(this.output, { x: x, y: this.height + y });
   }
 }
 
@@ -170,7 +178,7 @@ for (let j = 0; j < befunge.height; j++) {
   befunge.cells[0][j] = (j % 10).toString();
 }
  befunge.read("11+.\"a\". elllkjlkj@");
-// befunge.step(8);
+befunge.step(8);
 
 // addText("output: " + befunge.output, { x: 0, y: 15});
 
