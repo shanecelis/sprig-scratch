@@ -6,6 +6,16 @@
 const player = "p";
 const selection = "b";
 
+class Stack extends Array {
+  // Give us a default value when we pop with nothing in the stack.
+  pop() {
+    if (this.length == 0)
+      return 0;
+    else
+      return super.pop();
+  }
+}
+
 class Befunge {
 
   constructor(width, height, char = ' ') {
@@ -15,7 +25,7 @@ class Befunge {
     this.cells = Array(width).fill(null).map(i => Array(height).fill(char));
     this.pointer = [0, 0];
     this.inertia = [1, 0];
-    this.stack = []; // just integers, please.
+    this.stack = new Stack(); // just integers, please.
     this.output = "";
     this.stringMode = false;
   }
@@ -53,6 +63,15 @@ class Befunge {
       case '/':
         s.push(s.pop() / s.pop());
         break;
+      case '%':
+        s.push(s.pop() % s.pop());
+        break;
+      case '!':
+        s.push(s.pop() == 0 ? 1 : 0);
+        break;
+      case '`':
+        s.push(s.pop() > s.pop() ? 1 : 0);
+        break;
       case '>':
         this.inertia = [1, 0];
         break;
@@ -69,6 +88,35 @@ class Befunge {
         let index = Math.floor(Math.random() * 4);
         eval(['>', '<', '^', 'v'][index]);
         break;
+      case '_':
+        if (s.pop() == 0)
+          eval('>');
+        else
+          eval('<');
+        break;
+      case '|':
+        if (s.pop() == 0)
+          eval('v');
+        else
+          eval('^');
+        break;
+      case '"':
+        this.stringMode = true;
+        break;
+      case ':':
+        let item = s.pop();
+        s.push(item);
+        s.push(item);
+        break;
+      case '\\':
+        let a = s.pop();
+        let b = s.pop();
+        s.push(a);
+        s.push(b);
+        break;
+      case '$':
+        s.pop();
+        break;
       case '.':
         // Output as integer.
         this.output += s.pop();
@@ -77,9 +125,37 @@ class Befunge {
         // Output as character.
         this.output += String.fromCodePoint(s.pop());
         break;
-      case '"':
-        this.stringMode = true;
+      case '#':
+        let pc = this.pointer;
+        pc[0] += this.inertia[0];
+        pc[1] += this.inertia[1];
         break;
+      case 'g':
+      {
+        let y = s.pop();
+        let x = s.pop();
+        if (x < 0 || y < 0 || x >= this.width || y >= this.height)
+          s.push(0);
+        else
+          s.push(this.cells[x][y].codePointAt());
+        break;
+      }
+      case 'p':
+        let y = s.pop();
+        let x = s.pop();
+        let v = s.pop();
+        this.cells[x][y] = String.fromCodePoint(v)[0];
+        break;
+      case '&':
+        // Get integer from user and push it.
+        break;
+      case '~':
+        // Get character from user and push it.
+        break;
+      case '@':
+        // End program.
+        this.inertia[0] = 0;
+        this.inertia[1] = 0;
       default:
         // This code is probably invalid. Ignoring.
     }
@@ -123,7 +199,7 @@ class Befunge {
       addText("stack"[4 - i], { x: this.width + x, y: this.height + y - 1 - i });
     }
     for (let i = 0; i < this.stack.length; i++) {
-      addText("" + this.stack[i], { x: this.width + x + 1, y: this.height + y - 1 - i });
+      addText(("" + this.stack[i]).padStart(2, ' '), { x: this.width + x + 1, y: this.height + y - 1 - i });
     }
     // Draw the output.
     addText("output",    { x: x, y: this.height + y });
@@ -194,7 +270,7 @@ const levels = [
 setMap(levels[level]);
 clearText();
 
-let befunge = new Befunge(17, 13, 'b');
+let befunge = new Befunge(16, 13, 'b');
 befunge.cells[befunge.width - 1][0] = 'l';
 for (let i = 0; i < befunge.width; i++) {
   befunge.cells[i][0] = (i % 10).toString();
@@ -202,14 +278,10 @@ for (let i = 0; i < befunge.width; i++) {
 for (let j = 0; j < befunge.height; j++) {
   befunge.cells[0][j] = (j % 10).toString();
 }
- befunge.read("11+.\"a\", elllkjlkj@");
- befunge.step(8);
+befunge.read(":11+.\"a\", elllkjlkj@");
+befunge.step(1);
 
 // addText("output: " + befunge.output, { x: 0, y: 15});
-
-
-
-
 
 befunge.draw(1,1);
 
@@ -218,7 +290,7 @@ setPushables({
 });
 
 //addText("hello", { x: 0, y: 0, color: color`5` });
-addText("hello", { x: 12, y: 5, color: color`5` });
+// addText("hello", { x: 12, y: 5, color: color`5` });
 
 onInput("s", () => {
   getFirst(selection).y += 1
