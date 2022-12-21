@@ -1,18 +1,49 @@
 /*
-  @title: Befunge
+  @title: Befungoban
   @author: Shane Celis @shanecelis
+
+  https://esolangs.org/wiki/Befunge
+  http://qiao.github.io/javascript-playground/visual-befunge93-interpreter/
 */
 
 const player = "p";
 const selection = "b";
 
 class Stack extends Array {
-  // Give us a default value when we pop with nothing in the stack.
+  // Give us a default value of 0 when we pop with nothing in the stack.
   pop() {
     if (this.length == 0)
       return 0;
     else
       return super.pop();
+  }
+}
+
+class CompositeSprite {
+  constructor(sprites) {
+    this.sprites = sprites;
+  }
+
+  get x() {
+    return this.sprites[0].x;
+  }
+
+  get y() {
+    return this.sprites[0].y;
+  }
+
+  set x(newX) {
+    let dx = this.sprites[0].x - newX;
+    for (let i = 0; x < this.sprites.length; i++) {
+      this.sprites[i].x += dx;
+    }
+  }
+
+  set y(newY) {
+    let dy = this.sprites[0].y - newY;
+    for (let i = 0; x < this.sprites.length; i++) {
+      this.sprites[i].y += dy;
+    }
   }
 }
 
@@ -25,7 +56,7 @@ class Befunge {
     this.cells = Array(width).fill(null).map(i => Array(height).fill(char));
     this.pointer = [0, 0];
     this.inertia = [1, 0];
-    this.stack = new Stack(); // just integers, please.
+    this.stack = new Stack(); // Just integers, please.
     this.output = "";
     this.stringMode = false;
   }
@@ -207,6 +238,99 @@ class Befunge {
   }
 }
 
+const TEXT_WIDTH = 20;
+const TEXT_HEIGHT = 16;
+
+function addCenterText(text, y, color = 0) {
+  addText(text, { x: (TEXT_WIDTH - text.length) / 2, y : y, color : color });
+}
+
+var scenes = {};
+var currentScene = null;
+
+class Scene {
+  constructor(name) {
+    scenes[name] = this;
+  }
+
+  onInput(char) {
+  }
+
+  draw() {
+  }
+
+  gotoScene(scene) {
+    clearText();
+    if (typeof scene == "string")
+      currentScene = scenes[scene];
+    else
+      currentScene = scene;
+    currentScene.draw();
+  }
+}
+
+class TitleScene extends Scene {
+
+  onInput(char) {
+    this.gotoScene("level0");
+  }
+
+  draw() {
+    let y = TEXT_HEIGHT / 2;
+    addCenterText("Befungoban", y - 2);
+    addCenterText("By Shane Celis", y);
+    addCenterText("   @shanecelis", y + 2);
+  }
+}
+
+class BefungeScene extends Scene {
+
+  constructor(name) {
+    super(name);
+    this.play = false;
+
+    let befunge = new Befunge(16, 13, ' ');
+    // befunge.cells[befunge.width - 1][0] = 'l';
+    // for (let i = 0; i < befunge.width; i++) {
+    //   befunge.cells[i][0] = (i % 10).toString();
+    // }
+    // for (let j = 0; j < befunge.height; j++) {
+    //   befunge.cells[0][j] = (j % 10).toString();
+    // }
+    befunge.read(":11+.\"a\", elllkjlkj@");
+    befunge.step(1);
+    this.befunge = befunge;
+  }
+
+  draw() {
+    this.befunge.draw(1, 1);
+  }
+
+  onInput(c) {
+    switch (c) {
+      case 'w':
+        getFirst(selection).y -= 1;
+        break;
+      case 'a':
+        getFirst(selection).x -= 1;
+        break;
+      case 's':
+        getFirst(selection).y += 1;
+        break;
+      case 'd':
+        getFirst(selection).x += 1;
+        break;
+    }
+  }
+
+}
+
+let titleScene = new TitleScene("titleScene");
+// let level0 = new Level0();
+let level0 = new BefungeScene("level0");
+currentScene = titleScene;
+
+
 setLegend(
   [ player, bitmap`
 ................
@@ -283,29 +407,27 @@ befunge.step(1);
 
 // addText("output: " + befunge.output, { x: 0, y: 15});
 
-befunge.draw(1,1);
+// befunge.draw(1,1);
+currentScene.draw();
 
 setPushables({
   [player]: []
 });
 
-//addText("hello", { x: 0, y: 0, color: color`5` });
-// addText("hello", { x: 12, y: 5, color: color`5` });
-
-onInput("s", () => {
-  getFirst(selection).y += 1
-});
-
 onInput("w", () => {
-  getFirst(selection).y -= 1
+  currentScene.onInput('w');
 });
 
 onInput("a", () => {
-  getFirst(selection).x -= 1
+  currentScene.onInput('a');
+});
+
+onInput("s", () => {
+  currentScene.onInput('s');
 });
 
 onInput("d", () => {
-  getFirst(selection).x += 1
+  currentScene.onInput('d');
 });
 
 afterInput(() => {
