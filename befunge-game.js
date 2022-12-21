@@ -63,6 +63,7 @@ class Befunge {
     this.inertia = [1, 0];
     this.stack = new Stack(); // Just integers, please.
     this.output = "";
+    this.error = null;
     this.stringMode = false;
   }
 
@@ -78,11 +79,11 @@ class Befunge {
         this.stringMode = false;
       else
         s.push(instruction.codePointAt());
-      return;
+      return true;
     }
     if (this.isDigit(instruction)) {
       s.push(instruction - 0);
-      return;
+      return true;
     }
     switch(instruction) {
       case ' ':
@@ -115,26 +116,26 @@ class Befunge {
         this.inertia = [-1, 0];
         break;
       case '^':
-        this.inertia = [0, 1];
+        this.inertia = [0, -1];
         break;
       case 'v':
-        this.inertia = [0, -1];
+        this.inertia = [0, 1];
         break;
       case '?':
         let index = Math.floor(Math.random() * 4);
-        eval(['>', '<', '^', 'v'][index]);
+        return this.eval(['>', '<', '^', 'v'][index]);
         break;
       case '_':
         if (s.pop() == 0)
-          eval('>');
+          return this.eval('>');
         else
-          eval('<');
+          return this.eval('<');
         break;
       case '|':
         if (s.pop() == 0)
-          eval('v');
+          return this.eval('v');
         else
-          eval('^');
+          return this.eval('^');
         break;
       case '"':
         this.stringMode = true;
@@ -163,8 +164,8 @@ class Befunge {
         break;
       case '#':
         let pc = this.pointer;
-        pc[0] += this.inertia[0];
-        pc[1] += this.inertia[1];
+        pc[0] = (pc[0] + this.inertia[0]) % this.width;
+        pc[1] = (pc[1] + this.inertia[1]) % this.height;
         break;
       case 'g':
       {
@@ -192,18 +193,23 @@ class Befunge {
         // End program.
         this.inertia[0] = 0;
         this.inertia[1] = 0;
+        break;
       default:
         // This code is probably invalid. Ignoring.
+        this.error = "No instruction '" + instruction +"'";
+        return false;
     }
+    return true;
   }
 
   step(count) {
     let pc = this.pointer;
     for (let i = 0; i < count; i++) {
       let instruction = this.cells[pc[0]][pc[1]];
-      this.eval(instruction);
-      pc[0] += this.inertia[0];
-      pc[1] += this.inertia[1];
+      if (this.eval(instruction)) {
+        pc[0] = (pc[0] + this.inertia[0]) % this.width;
+        pc[1] = (pc[1] + this.inertia[1]) % this.height;
+      }
     }
   }
 
@@ -230,16 +236,6 @@ class Befunge {
         addText(this.cells[i][j], { x: i + x, y: j + y});
       }
     }
-    // Draw the stack.
-    for (let i = 0; i < 5; i++) {
-      addText("stack"[4 - i], { x: this.width + x, y: this.height + y - 1 - i });
-    }
-    for (let i = 0; i < this.stack.length; i++) {
-      addText(("" + this.stack[i]).padStart(2, ' '), { x: this.width + x + 1, y: this.height + y - 1 - i });
-    }
-    // Draw the output.
-    addText("output",    { x: x, y: this.height + y });
-    addText(this.output, { x: x, y: this.height + y + 1 });
   }
 }
 
@@ -265,6 +261,9 @@ class Scene {
   draw() {
   }
 
+  tick() {
+  }
+
   gotoScene(scene) {
     clearText();
     if (typeof scene == "string")
@@ -278,7 +277,7 @@ class Scene {
 class TitleScene extends Scene {
 
   onInput(c) {
-    // this.gotoScene("level0");
+    this.gotoScene("level0");
     switch (c) {
       case 'w':
         block.y -= 1;
@@ -307,23 +306,40 @@ class BefungeScene extends Scene {
 
   constructor(name) {
     super(name);
-    this.play = false;
+    this.play = true;
+    this.befunge = new Befunge(16, 13, ' ');
+  }
 
-    let befunge = new Befunge(16, 13, ' ');
-    // befunge.cells[befunge.width - 1][0] = 'l';
-    // for (let i = 0; i < befunge.width; i++) {
-    //   befunge.cells[i][0] = (i % 10).toString();
-    // }
-    // for (let j = 0; j < befunge.height; j++) {
-    //   befunge.cells[0][j] = (j % 10).toString();
-    // }
-    befunge.read(":11+.\"a\", elllkjlkj@");
-    befunge.step(1);
-    this.befunge = befunge;
+  tick() {
+    if (this.play) {
+      this.befunge.step(1);
+      this.draw();
+    }
   }
 
   draw() {
-    this.befunge.draw(1, 1);
+    let x = 1;
+    let y = 1;
+    this.befunge.draw(x, y);
+
+    // Draw the stack.
+    for (let i = 0; i < 5; i++) {
+      addText("stack"[4 - i], { x: this.befunge.width + x, y: this.befunge.height + y - 1 - i });
+    }
+    for (let i = 0; i < this.befunge.stack.length; i++) {
+      addText(("" + this.befunge.stack[i]).padStart(2, ' '), { x: this.befunge.width + x + 1, y: this.befunge.height + y - 1 - i });
+    }
+    // Draw the output.
+    if (this.befunge.error == null) {
+      addText("output",            { x: x, y: this.befunge.height + y });
+      addText(this.befunge.output, { x: x, y: this.befunge.height + y + 1 });
+    } else {
+      this.play = false;
+      addText("error ",            { x: x, y: this.befunge.height + y });
+      addText(this.befunge.error, { x: x, y: this.befunge.height + y + 1 });
+    }
+    block.x = this.befunge.pointer[0] + x;
+    block.y = this.befunge.pointer[1] + y;
   }
 
   onInput(c) {
@@ -342,12 +358,16 @@ class BefungeScene extends Scene {
         break;
     }
   }
-
 }
 
 let titleScene = new TitleScene("titleScene");
 // let level0 = new Level0();
 let level0 = new BefungeScene("level0");
+level0.befunge.read(`"!dlroW"v
+v       <
+>",olleH">:v
+         |,<
+         @`);
 currentScene = titleScene;
 
 
@@ -484,21 +504,8 @@ setMap(levels[level]);
 block.sprites = [getFirst(blockSE), getFirst(blockN), getFirst(blockW), getFirst(blockNW)];
 clearText();
 
-let befunge = new Befunge(16, 13, 'b');
-befunge.cells[befunge.width - 1][0] = 'l';
-for (let i = 0; i < befunge.width; i++) {
-  befunge.cells[i][0] = (i % 10).toString();
-}
-for (let j = 0; j < befunge.height; j++) {
-  befunge.cells[0][j] = (j % 10).toString();
-}
-befunge.read(":11+.\"a\", elllkjlkj@");
-befunge.step(1);
-
-// addText("output: " + befunge.output, { x: 0, y: 15});
-
-// befunge.draw(1,1);
 currentScene.draw();
+setInterval(() => currentScene.tick(), 100);
 
 setPushables({
   [player]: []
