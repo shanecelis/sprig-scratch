@@ -36,15 +36,15 @@ class CompositeSprite {
   }
 
   set x(newX) {
-    let dx = this.sprites[0].x - newX;
-    for (let i = 0; x < this.sprites.length; i++) {
+    let dx = newX - this.sprites[0].x;
+    for (let i = 0; i < this.sprites.length; i++) {
       this.sprites[i].x += dx;
     }
   }
 
   set y(newY) {
-    let dy = this.sprites[0].y - newY;
-    for (let i = 0; x < this.sprites.length; i++) {
+    let dy = newY - this.sprites[0].y;
+    for (let i = 0; i < this.sprites.length; i++) {
       this.sprites[i].y += dy;
     }
   }
@@ -250,6 +250,7 @@ function addCenterText(text, y, color = 0) {
 
 var scenes = {};
 var currentScene = null;
+var block = new CompositeSprite([]);
 
 class Scene {
   constructor(name) {
@@ -274,8 +275,22 @@ class Scene {
 
 class TitleScene extends Scene {
 
-  onInput(char) {
-    this.gotoScene("level0");
+  onInput(c) {
+    // this.gotoScene("level0");
+    switch (c) {
+      case 'w':
+        block.y -= 1;
+        break;
+      case 'a':
+        block.x -= 1;
+        break;
+      case 's':
+        block.y += 1;
+        break;
+      case 'd':
+        block.x += 1;
+        break;
+    }
   }
 
   draw() {
@@ -446,6 +461,8 @@ const levels = [
 ....................`,
 ];
 setMap(levels[level]);
+
+block.sprites = [getFirst(blockSE), getFirst(blockN), getFirst(blockW)];
 clearText();
 
 let befunge = new Befunge(16, 13, 'b');
