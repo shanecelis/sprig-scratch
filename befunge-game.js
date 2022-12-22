@@ -277,6 +277,7 @@ var scenes = {};
 var currentScene = null;
 var sceneStack = new Stack();
 var block = new CompositeSprite([]);
+var cell = new CompositeSprite([]);
 const defaultIntervalFrequency = 100;
 
 function currentTick() {
@@ -642,22 +643,22 @@ FFFFFFFFFFFFFFFF`],
 ..............99
 ..............99`],
   [ cellSE, bitmap`
-9999999999999999
-9999999999999999
-9999999999999999
-9999999999999999
-9999999999999999
-9999999999999999
-9999999999999999
-9999999999999999
-9999999999999999
-9999999999999999
-9999999999999999
-9999999999999999
-9999999999999999
-9999999999999999
-9999999999999999
-9999999999999999`],
+DDDDDDDDDDDDDDDD
+DDDDDDDDDDDDDDDD
+DDDDDDDDDDDDDDDD
+DDDDDDDDDDDDDDDD
+DDDDDDDDDDDDDDDD
+DDDDDDDDDDDDDDDD
+DDDDDDDDDDDDDDDD
+DDDDDDDDDDDDDDDD
+DDDDDDDDDDDDDDDD
+DDDDDDDDDDDDDDDD
+DDDDDDDDDDDDDDDD
+DDDDDDDDDDDDDDDD
+DDDDDDDDDDDDDDDD
+DDDDDDDDDDDDDDDD
+DDDDDDDDDDDDDDDD
+DDDDDDDDDDDDDDDD`],
   [ cellN, bitmap`
 ................
 ................
@@ -673,25 +674,25 @@ FFFFFFFFFFFFFFFF`],
 ................
 ................
 ................
-9999999999999999
-9999999999999999`],
+DDDDDDDDDDDDDDDD
+DDDDDDDDDDDDDDDD`],
   [ cellW, bitmap`
-..............99
-..............99
-..............99
-..............99
-..............99
-..............99
-..............99
-..............99
-..............99
-..............99
-..............99
-..............99
-..............99
-..............99
-..............99
-..............99`],
+..............DD
+..............DD
+..............DD
+..............DD
+..............DD
+..............DD
+..............DD
+..............DD
+..............DD
+..............DD
+..............DD
+..............DD
+..............DD
+..............DD
+..............DD
+..............DD`],
   [ cellNW, bitmap`
 ................
 ................
@@ -707,11 +708,11 @@ FFFFFFFFFFFFFFFF`],
 ................
 ................
 ................
-..............99
-..............99`]
+..............DD
+..............DD`]
 );
 
-setSolids([]);
+setSolids([cellSE]);
 
 let level = 0;
 // 20 x 16
@@ -737,12 +738,13 @@ p...................
 setMap(levels[level]);
 
 block.sprites = [getFirst(blockSE), getFirst(blockN), getFirst(blockW), getFirst(blockNW)];
+cell.sprites = [getFirst(blockSE), getFirst(blockN), getFirst(blockW), getFirst(blockNW)];
 clearText();
 
 currentScene.enter();
 
 setPushables({
-  [player]: []
+  [player]: [cellSE]
 });
 
 onInput("w", () => currentScene.onInput('w'));
