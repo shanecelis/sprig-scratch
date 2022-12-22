@@ -11,7 +11,12 @@ const selection = "b";
 const blockSE = "e";
 const blockW = "w";
 const blockN = "n";
-const blockNW = "N";
+const blockNW = "s";
+
+const cellSE = "E";
+const cellW = "W";
+const cellN = "N";
+const cellNW = "S";
 
 class Stack extends Array {
   // Give us a default value of 0 when we pop with nothing in the stack.
@@ -20,6 +25,10 @@ class Stack extends Array {
       return 0;
     else
       return super.pop();
+  }
+
+  peek() {
+    return this[this.length - 1];
   }
 }
 
@@ -65,6 +74,7 @@ class Befunge {
     this.output = "";
     this.error = null;
     this.stringMode = false;
+    this.terminated = false;
   }
 
   isDigit(c) {
@@ -191,6 +201,7 @@ class Befunge {
         break;
       case '@':
         // End program.
+        this.terminated = true;
         this.inertia[0] = 0;
         this.inertia[1] = 0;
         break;
@@ -242,17 +253,60 @@ class Befunge {
 const TEXT_WIDTH = 20;
 const TEXT_HEIGHT = 16;
 
-function addCenterText(text, y, color = 0) {
-  addText(text, { x: (TEXT_WIDTH - text.length) / 2, y : y, color : color });
+/** Center a string or an array of strings horizontally. */
+function addCenterText(text, y, color = 0, chooseLength = null) {
+  if (typeof text == 'string') {
+    addText(text.slice(0, TEXT_WIDTH - 1), { x: Math.max(0, Math.floor((TEXT_WIDTH - text.length) / 2)), y : y, color : color });
+  } else {
+    // Handle an array of lines.
+    let lines = text;
+    // let begin = Math.max(0, Math.floor(TEXT_HEIGHT / 2 - lines.length / 2));
+    let textLength = (chooseLength != null) ? chooseLength(...lines.map(l => l.length)) : null;
+
+    for (let i = 0; i < lines.length; i++) {
+      addText(lines[i].slice(0, TEXT_WIDTH - 1),
+              { x: Math.max(0, Math.floor((TEXT_WIDTH - (textLength == null ? lines[i].length : textLength)) / 2)),
+                y : y + i,
+                color : color });
+      // addCenterText(lines[i], begin + i);
+    }
+  }
 }
 
 var scenes = {};
 var currentScene = null;
+var sceneStack = new Stack();
 var block = new CompositeSprite([]);
+const defaultIntervalFrequency = 100;
+
+function currentTick() {
+  currentScene.tick();
+}
 
 class Scene {
-  constructor(name) {
-    scenes[name] = this;
+  constructor(name = null) {
+    if (name != null)
+      scenes[name] = this;
+    this.intervalFrequency = null;
+    this.intervalId = -1;
+  }
+
+  get tickFrequency() {
+    return this.intervalFrequency;
+  }
+
+  /** Set the tick frequency in milliseconds or null for no ticks (default). */
+  set tickFrequency(newF) {
+    if (this.intervalFrequency != newF) {
+      if (this.intervalId >= 0)
+        clearInterval(this.intervalId);
+      this.intervalFrequency = newF;
+      if (this.intervalFrequency == null)
+        return;
+      // Lower bound of 10 milliseconds.
+      this.intervalFrequency = Math.max(10, this.intervalFrequency);
+      this.intervalId = setInterval(() => this.tick(), this.intervalFrequency);
+    }
   }
 
   onInput(char) {
@@ -264,13 +318,49 @@ class Scene {
   tick() {
   }
 
-  gotoScene(scene) {
+  enter() {
+    this.draw();
+  }
+
+  exit() {
     clearText();
+    this.tickFrequency = null;
+  }
+
+  gotoScene(scene) {
+    currentScene.exit();
     if (typeof scene == "string")
       currentScene = scenes[scene];
     else
       currentScene = scene;
-    currentScene.draw();
+    currentScene.enter();
+  }
+
+  pushScene(scene) {
+    sceneStack.push(currentScene);
+    this.gotoScene(scene);
+  }
+
+  popScene() {
+    this.gotoScene(sceneStack.pop());
+  }
+}
+
+class HelpScene extends Scene {
+  constructor(name, text) {
+    super(name);
+    this.text = text;
+    this.chooseLength = null;
+  }
+
+  onInput(c) {
+    this.popScene();
+  }
+
+  draw() {
+    let lines = this.text.split(/\r?\n/);
+    let begin = Math.max(0, Math.floor(TEXT_HEIGHT / 2 - lines.length / 2));
+    addCenterText(lines, begin, 0, this.chooseLength);
   }
 }
 
@@ -278,20 +368,9 @@ class TitleScene extends Scene {
 
   onInput(c) {
     this.gotoScene("level0");
-    switch (c) {
-      case 'w':
-        block.y -= 1;
-        break;
-      case 'a':
-        block.x -= 1;
-        break;
-      case 's':
-        block.y += 1;
-        break;
-      case 'd':
-        block.x += 1;
-        break;
-    }
+    this.pushScene(new HelpScene("help0", `HELP
+
+Hit 'i' for help`));
   }
 
   draw() {
@@ -302,12 +381,46 @@ class TitleScene extends Scene {
   }
 }
 
+let befungePlayHelp = new HelpScene("befunge-play-help", `CONTROLS
+
+w -
+a - slower
+s -
+d - faster
+
+i - help
+j - reset
+k - play/pause
+l - next level
+`);
+befungePlayHelp.chooseLength = Math.max;
+
+let befungePauseHelp = new HelpScene("befunge-pause-help", `CONTROLS
+
+w - up
+a - left
+s - down
+d - right
+
+i - help
+j - reset
+k - play/pause
+l - next level
+`);
+befungePauseHelp.chooseLength = Math.max;
+
 class BefungeScene extends Scene {
 
-  constructor(name) {
+  constructor(name, input) {
     super(name);
-    this.play = true;
-    this.befunge = new Befunge(16, 13, ' ');
+    this.input = input;
+    this.reset();
+  }
+
+  reset() {
+    this.befunge = new Befunge(15, 13, ' ');
+    this.befunge.read(this.input);
+    this.play = false;
   }
 
   tick() {
@@ -317,10 +430,22 @@ class BefungeScene extends Scene {
     }
   }
 
+  enter() {
+    super.enter();
+    this.tickFrequency = defaultIntervalFrequency;
+  }
+
   draw() {
+    clearText();
     let x = 1;
     let y = 1;
     this.befunge.draw(x, y);
+
+    if (this.befunge.terminated) {
+      addText("Completed! Hit l", { x: 1, y: 0 });
+    } else if (! this.play) {
+      addText("Paused. Hit k", { x: 1, y: 0 });
+    }
 
     // Draw the stack.
     for (let i = 0; i < 5; i++) {
@@ -342,19 +467,55 @@ class BefungeScene extends Scene {
     block.y = this.befunge.pointer[1] + y;
   }
 
+
   onInput(c) {
+    if (! this.play) {
+      let p = getFirst(player);
+      switch (c) {
+        case 'w':
+          p.y -= 1;
+          break;
+        case 'a':
+          p.x -= 1;
+          break;
+        case 's':
+          p.y += 1;
+          break;
+        case 'd':
+          p.x += 1;
+          break;
+      }
+    } else {
+
+      switch (c) {
+        case 'w':
+          break;
+        case 'a':
+          this.tickFrequency += 20;
+          break;
+        case 's':
+          break;
+        case 'd':
+          this.tickFrequency -= 20;
+          break;
+      }
+    }
     switch (c) {
-      case 'w':
-        getFirst(selection).y -= 1;
+      case 'j':
+        this.reset();
+        this.draw();
         break;
-      case 'a':
-        getFirst(selection).x -= 1;
+      case 'k':
+        this.play = ! this.play;
         break;
-      case 's':
-        getFirst(selection).y += 1;
+      case 'l':
+        if (this.befunge.terminated)
+          this.popScene();
+        else
+          addText("Not complete.", { x: 1, y: 0 });
         break;
-      case 'd':
-        getFirst(selection).x += 1;
+      case 'i':
+        this.pushScene(this.play ? befungePlayHelp : befungePauseHelp);
         break;
     }
   }
@@ -362,12 +523,18 @@ class BefungeScene extends Scene {
 
 let titleScene = new TitleScene("titleScene");
 // let level0 = new Level0();
-let level0 = new BefungeScene("level0");
-level0.befunge.read(`"!dlroW"v
+let level0 = new BefungeScene("level0", `"!dlroW"v
 v       <
 >",olleH">:v
          |,<
          @`);
+
+let level1 = new BefungeScene("level1", `v
+>        v
+
+        @`);
+
+sceneStack.push(level1);
 currentScene = titleScene;
 
 
@@ -473,6 +640,74 @@ FFFFFFFFFFFFFFFF`],
 ................
 ................
 ..............99
+..............99`],
+  [ cellSE, bitmap`
+9999999999999999
+9999999999999999
+9999999999999999
+9999999999999999
+9999999999999999
+9999999999999999
+9999999999999999
+9999999999999999
+9999999999999999
+9999999999999999
+9999999999999999
+9999999999999999
+9999999999999999
+9999999999999999
+9999999999999999
+9999999999999999`],
+  [ cellN, bitmap`
+................
+................
+................
+................
+................
+................
+................
+................
+................
+................
+................
+................
+................
+................
+9999999999999999
+9999999999999999`],
+  [ cellW, bitmap`
+..............99
+..............99
+..............99
+..............99
+..............99
+..............99
+..............99
+..............99
+..............99
+..............99
+..............99
+..............99
+..............99
+..............99
+..............99
+..............99`],
+  [ cellNW, bitmap`
+................
+................
+................
+................
+................
+................
+................
+................
+................
+................
+................
+................
+................
+................
+..............99
 ..............99`]
 );
 
@@ -482,14 +717,14 @@ let level = 0;
 // 20 x 16
 const levels = [
   map`
-.p..................
+....................
+p...................
 ....................
 ....................
 ....................
 ....................
 ....................
-....................
-.........b.Nn.......
+...........sn.......
 ...........we.......
 ....................
 ....................
@@ -504,28 +739,21 @@ setMap(levels[level]);
 block.sprites = [getFirst(blockSE), getFirst(blockN), getFirst(blockW), getFirst(blockNW)];
 clearText();
 
-currentScene.draw();
-setInterval(() => currentScene.tick(), 100);
+currentScene.enter();
 
 setPushables({
   [player]: []
 });
 
-onInput("w", () => {
-  currentScene.onInput('w');
-});
+onInput("w", () => currentScene.onInput('w'));
+onInput("a", () => currentScene.onInput('a'));
+onInput("s", () => currentScene.onInput('s'));
+onInput("d", () => currentScene.onInput('d'));
 
-onInput("a", () => {
-  currentScene.onInput('a');
-});
-
-onInput("s", () => {
-  currentScene.onInput('s');
-});
-
-onInput("d", () => {
-  currentScene.onInput('d');
-});
+onInput("i", () => currentScene.onInput('i'));
+onInput("j", () => currentScene.onInput('j'));
+onInput("k", () => currentScene.onInput('k'));
+onInput("l", () => currentScene.onInput('l'));
 
 afterInput(() => {
 
