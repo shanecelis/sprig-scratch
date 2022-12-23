@@ -13,10 +13,7 @@ const blockW = "w";
 const blockN = "n";
 const blockNW = "s";
 
-const cellSE = "E";
-const cellW = "W";
-const cellN = "N";
-const cellNW = "S";
+const mobile = "m";
 
 class Stack extends Array {
   // Give us a default value of 0 when we pop with nothing in the stack.
@@ -58,6 +55,30 @@ class CompositeSprite {
     for (let i = 0; i < this.sprites.length; i++) {
       this.sprites[i].y += dy;
     }
+  }
+}
+
+/** Keep a character cell in sync with a sprite. */
+class CellSprite {
+  constructor(i, j, sprite) {
+    this.i = i;
+    this.j = j;
+    this.sprite = sprite;
+    this.x = sprite.x;
+    this.y = sprite.y;
+  }
+
+  get changed() {
+    return this.x != this.sprite.x || this.y != this.sprite.y;
+  }
+
+  update() {
+    let dx = this.sprite.x - this.x;
+    let dy = this.sprite.y - this.y;
+    this.i -= dx;
+    this.j -= dy;
+    this.x -= dx;
+    this.y -= dy;
   }
 }
 
@@ -241,6 +262,12 @@ class Befunge {
     }
   }
 
+  swapCells(i, j, ii, jj) {
+    let tmp = this.cells[i][j];
+    this.cells[i][j] = this.cells[ii][jj];
+    this.cells[ii][jj] = tmp;
+  }
+
   draw(x = 0, y = 0) {
     for (let i = 0; i < this.width; i++) {
       for (let j = 0; j < this.height; j++) {
@@ -277,7 +304,6 @@ var scenes = {};
 var currentScene = null;
 var sceneStack = new Stack();
 var block = new CompositeSprite([]);
-var cell = new CompositeSprite([]);
 const defaultIntervalFrequency = 100;
 
 function currentTick() {
@@ -310,14 +336,13 @@ class Scene {
     }
   }
 
-  onInput(char) {
-  }
+  onInput(char) { }
 
-  draw() {
-  }
+  afterInput() { }
 
-  tick() {
-  }
+  draw() { }
+
+  tick() { }
 
   enter() {
     this.draw();
@@ -412,10 +437,12 @@ befungePauseHelp.chooseLength = Math.max;
 
 class BefungeScene extends Scene {
 
-  constructor(name, input) {
+  constructor(name, input, setup = null) {
     super(name);
     this.input = input;
     this.reset();
+    this.cellSprites = [];
+    this.setup = setup;
   }
 
   reset() {
@@ -433,6 +460,10 @@ class BefungeScene extends Scene {
 
   enter() {
     super.enter();
+    if (this.setup != null) {
+      this.setup(this);
+      this.setup = null;
+    }
     this.tickFrequency = defaultIntervalFrequency;
   }
 
@@ -520,6 +551,20 @@ class BefungeScene extends Scene {
         break;
     }
   }
+
+  afterInput() {
+    for (let i = 0; i < this.cellSprites.length; i++) {
+      if (this.cellSprites[i].changed) {
+        let c = this.cellSprites[i];
+        let i = c.i;
+        let j = c.j;
+        c.update();
+        let ii = c.i;
+        let jj = c.j;
+        this.befunge.swapCells(i, j, ii, jj);
+      }
+    }
+  }
 }
 
 let titleScene = new TitleScene("titleScene");
@@ -533,7 +578,16 @@ v       <
 let level1 = new BefungeScene("level1", `v
 >        v
 
-        @`);
+        @`,
+scene => {
+  // let sprite = addSprite(1, 1, mobile);
+  // addSprite(1, 1, mobile);
+  // let sprite = getTile(1,1)[0];
+  let sprite = getFirst(mobile);
+  sprite.x = 1;
+  sprite.y = 1;
+  scene.cellSprites.push(new CellSprite(0, 0, sprite));
+});
 
 sceneStack.push(level1);
 currentScene = titleScene;
@@ -642,7 +696,7 @@ FFFFFFFFFFFFFFFF`],
 ................
 ..............99
 ..............99`],
-  [ cellSE, bitmap`
+  [ mobile, bitmap`
 DDDDDDDDDDDDDDDD
 DDDDDDDDDDDDDDDD
 DDDDDDDDDDDDDDDD
@@ -659,60 +713,9 @@ DDDDDDDDDDDDDDDD
 DDDDDDDDDDDDDDDD
 DDDDDDDDDDDDDDDD
 DDDDDDDDDDDDDDDD`],
-  [ cellN, bitmap`
-................
-................
-................
-................
-................
-................
-................
-................
-................
-................
-................
-................
-................
-................
-DDDDDDDDDDDDDDDD
-DDDDDDDDDDDDDDDD`],
-  [ cellW, bitmap`
-..............DD
-..............DD
-..............DD
-..............DD
-..............DD
-..............DD
-..............DD
-..............DD
-..............DD
-..............DD
-..............DD
-..............DD
-..............DD
-..............DD
-..............DD
-..............DD`],
-  [ cellNW, bitmap`
-................
-................
-................
-................
-................
-................
-................
-................
-................
-................
-................
-................
-................
-................
-..............DD
-..............DD`]
 );
 
-setSolids([cellSE]);
+setSolids([player, mobile]);
 
 let level = 0;
 // 20 x 16
@@ -726,7 +729,7 @@ p...................
 ....................
 ....................
 ...........sn.......
-...........we.......
+......m....we.......
 ....................
 ....................
 ....................
@@ -738,13 +741,13 @@ p...................
 setMap(levels[level]);
 
 block.sprites = [getFirst(blockSE), getFirst(blockN), getFirst(blockW), getFirst(blockNW)];
-cell.sprites = [getFirst(blockSE), getFirst(blockN), getFirst(blockW), getFirst(blockNW)];
+// cell.sprites = [getFirst(blockSE), getFirst(blockN), getFirst(blockW), getFirst(blockNW)];
 clearText();
 
 currentScene.enter();
 
 setPushables({
-  [player]: [cellSE]
+  [player]: [mobile]
 });
 
 onInput("w", () => currentScene.onInput('w'));
@@ -757,6 +760,4 @@ onInput("j", () => currentScene.onInput('j'));
 onInput("k", () => currentScene.onInput('k'));
 onInput("l", () => currentScene.onInput('l'));
 
-afterInput(() => {
-
-});
+afterInput(() => currentScene.afterInput());
