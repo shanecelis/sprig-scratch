@@ -167,3 +167,22 @@ const fail                = TinyTest.fail,
       eq                  = TinyTest.assertEquals, // alias for assertEquals
       assertStrictEquals  = TinyTest.assertStrictEquals,
       tests               = TinyTest.run;
+
+tests({
+  "identity tests": function () {
+    eq(`word`, reflow(`word`));
+    eq(`two words`, reflow(`two words`));
+   // eq(`biiiiiig word huu`, reflow(`biiiiiig word huu`));
+  },
+  "test very huge": function () {
+    eq(`biiiiiig word huu-
+uuuuuge even very-
+massive`, reflow(`biiiiiig word huuuuuuuge even very massive`));
+    eq(`biiiiiig word huu-
+uuuuuge even very-
+massive`, reflow(`biiiiiig word huuuuuuuge even very massive`));
+    eq(`biiiiiig word huu-
+uuuuuge even very-
+w`, reflow(`biiiiiig word huuuuuuuge even very w`));
+  }
+  });
