@@ -1,7 +1,7 @@
 /*
-  @title: Font Explorer
-  @author: Shane Celis
-           @shanecelis
+    @title: Font Explorer
+    @author: Shane Celis
+             @shanecelis
 */
 
 const cursor = "c";
@@ -29,9 +29,6 @@ setLegend(
 9999999999999999`]
 );
 
-//setSolids([]);
-
-let level = 0;
 const levels = [
   map`
 ....................
@@ -52,16 +49,7 @@ const levels = [
 ....................`,
 ];
 
-setMap(levels[level]);
-
-setPushables({
-  [ cursor ]: [],
-});
-
-onInput("w", () => _onInput('w'));
-onInput("a", () => _onInput('a'));
-onInput("s", () => _onInput('s'));
-onInput("d", () => _onInput('d'));
+setMap(levels[0]);
 
 var begin = 0;
 
@@ -102,10 +90,18 @@ function _onInput(c) {
 function fromCodePoint(point) {
   switch (point) {
     case 10:
-      // No backslash in character set.
+      // I bet a backslash. (Oops.)
+      // return "\n";
+
+      // I raise you two backslashes.
       // return "\\n";
+
+      // I raise you three backslashes!
       return String.fromCodePoint(21) + "n";
+      // (No backslash in character set. It shows up as pipe | actually. This uses a
+      // triple-backslash-like \\\ like glyph instead.)
     case 32:
+      // Not sure what this is. ASCII says it's control Z.
       return "^Z";
     default:
       return String.fromCodePoint(point)
@@ -122,10 +118,16 @@ function draw() {
   }
   let i = (getFirst(cursor).x - 1) / 2;
   let j = (getFirst(cursor).y - 1) / 2;
-  // let point = j * columnCount + i + begin;
   let point = i * rowCount + j + begin;
-  addText(fromCodePoint(point) + " int " + point, { x: 1, y: 15 });
+  if (point < 256)
+    addText("char " + fromCodePoint(point) + " int " + point, { x: 1, y: 15 });
 }
-draw();
+
+onInput("w", () => _onInput('w'));
+onInput("a", () => _onInput('a'));
+onInput("s", () => _onInput('s'));
+onInput("d", () => _onInput('d'));
 
 afterInput(draw);
+
+draw();
