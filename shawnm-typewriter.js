@@ -33,7 +33,18 @@ aaaaa
 aaaaa`
 setMap(level);
 
-var string = `biiiiiig word huuuuuuuge even very massive`
+var string = `biiiiiig word huuuuuuuge even very massive`;
+
+function textsplit(string, point){ //split text at point
+  if(string[point] != `\n`){
+    string = string.split('')
+    string[point] = `${string[point]}\n`;
+    string = string.join('');
+    console.log(`${string}`)
+  }
+  return string;
+};
+function reflow(string) {
 var lettercount = 0
 var tlettercount = 0
 var linecount = 0
@@ -73,21 +84,14 @@ for (let i = 0; i < string.length; i++) { //add linebreaks
       split +=2;
     }
     console.log(`${split}`)
-    textsplit(`${split}`)
+    string = textsplit(string, `${split}`);
     lettercount = 0
   }
 }
 words = string.split(" ")
 addText(`${lettercount}    ${tlettercount}`, {x:1,y:1,color: color`3`})
 addText(`${linecount}`, {x:4,y:1,color: color`3`})
-function textsplit(point){ //split text at point
-  if(string[point] != `\n`){
-    string = string.split('')
-    string[point] = `${string[point]}\n`;
-    string = string.join('');
-    console.log(`${string}`)
-  }
-}
+
   for (let i = 0; i < tlettercount; i++){
     console.log(`${tlettercount}`)
   string = string.split('')
@@ -100,6 +104,9 @@ function textsplit(point){ //split text at point
 while(string.includes("undefined")==true){
 string = string.replace("undefined", "");
 }
+  return string;
+}
+string = reflow(string);
 
 console.log(`${string}`) //insert text at point
 function insert(original, toInsert, index){
