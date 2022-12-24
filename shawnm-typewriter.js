@@ -172,7 +172,8 @@ tests({
   "identity tests": function () {
     eq(`word`, reflow(`word`));
     eq(`two words`, reflow(`two words`));
-   // eq(`biiiiiig word huu`, reflow(`biiiiiig word huu`));
+    // SHANE: Uncomment this test  to see the first failure.
+    // eq(`biiiiiig word huu`, reflow(`biiiiiig word huu`));
   },
   "test very huge": function () {
     eq(`biiiiiig word huu-
